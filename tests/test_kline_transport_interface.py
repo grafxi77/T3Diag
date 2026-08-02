@@ -68,6 +68,48 @@ def test_close_translates_serial_transport_error() -> None:
         transport.close()
 
 
+def test_send_writes_to_serial_transport() -> None:
+    serial_transport = create_serial_transport_mock()
+    transport = KLineTransport(serial_transport)
+
+    transport.send(b"\x01\x02")
+
+    serial_transport.write.assert_called_once_with(b"\x01\x02")
+
+
+def test_receive_reads_from_serial_transport() -> None:
+    serial_transport = create_serial_transport_mock()
+    serial_transport.read.return_value = b"\x55"
+
+    transport = KLineTransport(serial_transport)
+
+    assert transport.receive(1) == b"\x55"
+
+    serial_transport.read.assert_called_once_with(1)
+
+
+def test_receive_exact_reads_from_serial_transport() -> None:
+    serial_transport = create_serial_transport_mock()
+    serial_transport.read_exact.return_value = b"\x55\x01"
+
+    transport = KLineTransport(serial_transport)
+
+    assert transport.receive_exact(2) == b"\x55\x01"
+
+    serial_transport.read_exact.assert_called_once_with(2)
+
+
+def test_flush_calls_serial_transport() -> None:
+    serial_transport = create_serial_transport_mock()
+    transport = KLineTransport(serial_transport)
+
+    transport.flush()
+
+    serial_transport.flush.assert_called_once_with()
+    serial_transport.reset_input_buffer.assert_called_once_with()
+    serial_transport.reset_output_buffer.assert_called_once_with()
+
+
 def test_transport_exposes_required_public_api() -> None:
     serial_transport = create_serial_transport_mock()
     transport = KLineTransport(serial_transport)
