@@ -131,7 +131,7 @@ class SerialTransport:
         return bytes(received)
 
     def flush(self) -> None:
-        """Wartet bis alle Daten übertragen wurden."""
+        """Wartet, bis alle Daten übertragen wurden."""
         self._require_connection().flush()
 
     def reset_input_buffer(self) -> None:
@@ -141,6 +141,11 @@ class SerialTransport:
     def reset_output_buffer(self) -> None:
         """Leert den Ausgabepuffer."""
         self._require_connection().reset_output_buffer()
+
+    def set_break(self, enabled: bool) -> None:
+        """Aktiviert oder deaktiviert den BREAK-Zustand."""
+        connection = self._require_connection()
+        connection.break_condition = enabled
 
     def _require_connection(self) -> serial.Serial:
         """Gibt eine geöffnete Verbindung zurück."""
