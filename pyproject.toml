@@ -14,9 +14,22 @@ authors = [
     { name = "grafxi77" }
 ]
 
-dependencies = []
+dependencies = [
+    "pyserial",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "ruff",
+    "mypy",
+    "pre-commit",
+    "types-pyserial",
+]
 
 [tool.setuptools]
+
 package-dir = { "" = "src" }
 
 [tool.setuptools.packages.find]

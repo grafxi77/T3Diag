@@ -10,5 +10,6 @@ repos:
     rev: v1.17.1
     hooks:
       - id: mypy
-        args: [src]
-        pass_filenames: false
+        additional_dependencies:
+          - pyserial
+          - types-pyserial
