@@ -7,11 +7,15 @@ from serial import SerialException
 
 
 class SerialTransportError(Exception):
-    """Fehler innerhalb der seriellen Transportschicht."""
+    """Basisklasse für Fehler der seriellen Transportschicht."""
+
+
+class SerialTransportTimeoutError(SerialTransportError):
+    """Timeout beim Lesen serieller Daten."""
 
 
 class SerialTransport:
-    """Verwaltet eine serielle Verbindung.
+    """Abstraktion einer seriellen Verbindung.
 
     Diese Klasse kennt weder K-Line noch KWP1281.
     """
@@ -29,16 +33,16 @@ class SerialTransport:
 
     @property
     def port(self) -> str:
-        """Gibt den konfigurierten Gerätenamen zurück."""
+        """Gibt den Gerätenamen zurück."""
         return self._port
 
     @property
     def is_open(self) -> bool:
-        """Gibt an, ob die Schnittstelle geöffnet ist."""
+        """Gibt an, ob der Port geöffnet ist."""
         return self._connection is not None and self._connection.is_open
 
     def open(self) -> None:
-        """Öffnet die serielle Schnittstelle."""
+        """Öffnet den seriellen Port."""
         if self.is_open:
             return
 
@@ -55,11 +59,11 @@ class SerialTransport:
         except SerialException as error:
             self._connection = None
             raise SerialTransportError(
-                f"Serieller Port {self._port} konnte nicht geöffnet werden"
+                f"Port {self._port} konnte nicht geöffnet werden."
             ) from error
 
     def close(self) -> None:
-        """Schließt die serielle Schnittstelle."""
+        """Schließt den seriellen Port."""
         if self._connection is None:
             return
 
@@ -67,13 +71,13 @@ class SerialTransport:
             self._connection.close()
         except SerialException as error:
             raise SerialTransportError(
-                f"Serieller Port {self._port} konnte nicht geschlossen werden"
+                f"Port {self._port} konnte nicht geschlossen werden."
             ) from error
         finally:
             self._connection = None
 
     def write(self, data: bytes) -> int:
-        """Schreibt Bytes auf die serielle Schnittstelle."""
+        """Schreibt Bytes auf die Schnittstelle."""
         connection = self._require_connection()
 
         try:
@@ -81,69 +85,67 @@ class SerialTransport:
 
             if written is None:
                 raise SerialTransportError(
-                    f"Schreiben auf {self._port} lieferte kein Ergebnis"
+                    "pySerial lieferte keine Anzahl geschriebener Bytes."
                 )
 
             return written
 
         except SerialException as error:
             raise SerialTransportError(
-                f"Schreiben auf {self._port} fehlgeschlagen"
+                f"Schreiben auf {self._port} fehlgeschlagen."
             ) from error
 
     def read(self, size: int = 1) -> bytes:
-        """Liest eine festgelegte Anzahl Bytes."""
+        """Liest bis zu size Bytes."""
         if size < 1:
-            raise ValueError("size muss mindestens 1 sein")
+            raise ValueError("size muss mindestens 1 sein.")
 
         connection = self._require_connection()
 
         try:
-            return connection.read(size)
+            data = connection.read(size)
         except SerialException as error:
             raise SerialTransportError(
-                f"Lesen von {self._port} fehlgeschlagen"
+                f"Lesen von {self._port} fehlgeschlagen."
             ) from error
+
+        return bytes(data)
+
+    def read_exact(self, size: int) -> bytes:
+        """Liest exakt size Bytes oder löst einen Timeout aus."""
+        if size < 1:
+            raise ValueError("size muss mindestens 1 sein.")
+
+        received = bytearray()
+
+        while len(received) < size:
+            chunk = self.read(size - len(received))
+
+            if not chunk:
+                raise SerialTransportTimeoutError(
+                    f"Timeout: {len(received)} von {size} Bytes empfangen."
+                )
+
+            received.extend(chunk)
+
+        return bytes(received)
 
     def flush(self) -> None:
-        """Wartet, bis ausstehende Schreibdaten übertragen wurden."""
-        connection = self._require_connection()
-
-        try:
-            connection.flush()
-        except SerialException as error:
-            raise SerialTransportError(
-                f"Flush auf {self._port} fehlgeschlagen"
-            ) from error
+        """Wartet bis alle Daten übertragen wurden."""
+        self._require_connection().flush()
 
     def reset_input_buffer(self) -> None:
-        """Verwirft ungelesene Eingangsdaten."""
-        connection = self._require_connection()
-
-        try:
-            connection.reset_input_buffer()
-        except SerialException as error:
-            raise SerialTransportError(
-                f"Eingangspuffer von {self._port} konnte nicht geleert werden"
-            ) from error
+        """Leert den Eingabepuffer."""
+        self._require_connection().reset_input_buffer()
 
     def reset_output_buffer(self) -> None:
-        """Verwirft noch nicht übertragene Ausgangsdaten."""
-        connection = self._require_connection()
-
-        try:
-            connection.reset_output_buffer()
-        except SerialException as error:
-            raise SerialTransportError(
-                f"Ausgangspuffer von {self._port} konnte nicht geleert werden"
-            ) from error
+        """Leert den Ausgabepuffer."""
+        self._require_connection().reset_output_buffer()
 
     def _require_connection(self) -> serial.Serial:
-        """Gibt die offene Verbindung zurück."""
+        """Gibt eine geöffnete Verbindung zurück."""
         if self._connection is None or not self._connection.is_open:
-            raise SerialTransportError(
-                f"Serieller Port {self._port} ist nicht geöffnet"
-            )
+            raise SerialTransportError(f"Port {self._port} ist nicht geöffnet.")
 
         return self._connection
 
