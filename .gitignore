@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Test and tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Runtime data
+logs/*
+data/*
+
+# Keep directory structure
+!logs/.gitkeep
+!data/.gitkeep
+
+# Local configuration and secrets
+.env
+.env.*
+*.local
+
+# Build artifacts
+*.egg-info/
+build/
+dist/
+
+# Python build artifacts
+*.egg-info/
+
+# Python virtual environment
+.venv/
